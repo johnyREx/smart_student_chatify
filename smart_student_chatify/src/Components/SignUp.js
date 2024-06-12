@@ -3,7 +3,7 @@ import Button from "@material-ui/core/Button";
 import { FcGoogle } from "react-icons/fc";
 import { makeStyles } from "@material-ui/core/styles";
 import Container from "@material-ui/core/Container";
-import loginImg from "../Assets/login.png";
+import loginImg from "../Assets/smartstudentlogo.png"
 import Topography from "@material-ui/core/Typography";
 import { auth, provider } from "../Firebase/Firebase";
 
