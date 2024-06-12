@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import AppBar from "@material-ui/core/AppBar";
 import CssBaseline from "@material-ui/core/CssBaseline";
 import Divider from "@material-ui/core/Divider";
@@ -8,19 +8,82 @@ import IconButton from "@material-ui/core/IconButton";
 import MenuIcon from "@material-ui/icons/Menu";
 import Toolbar from "@material-ui/core/Toolbar";
 import Typography from "@material-ui/core/Typography";
-import { makeStyles, useTheme } from "@material-ui/core/styles";
+import { makeStyles, useTheme, withStyles } from "@material-ui/core/styles";
 import AccountCircle from "@material-ui/icons/AccountCircle";
 import MenuItem from "@material-ui/core/MenuItem";
 import Menu from "@material-ui/core/Menu";
-import Rooms from "./Rooms";
-import Chat from "./Chat";
+import Badge from "@material-ui/core/Badge";
+import Avatar from "@material-ui/core/Avatar";
 import { Grid } from "@material-ui/core";
+import { deepPurple } from "@material-ui/core/colors";
+import Rooms from "./Rooms";
+import { GoSignOut } from "react-icons/go";
+import { FaUserEdit } from "react-icons/fa";
+import { auth, db } from "../Firebase/Firebase";
+import { Link } from "react-router-dom";
+import EditProfile from "./EditProfile";
+import Fade from "@material-ui/core/Fade";
+import Snackbar from "@material-ui/core/Snackbar";
+import CloseIcon from "@material-ui/icons/Close";
 
-const drawerWidth = 230;
+const drawerWidth = 240;
+
+const StyledBadge = withStyles((theme) => ({
+  badge: {
+    backgroundColor: "#44b700",
+    color: "#44b700",
+    boxShadow: `0 0 0 2px ${theme.palette.background.paper}`,
+    "&::after": {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: "100%",
+      borderRadius: "50%",
+      border: "1px solid currentColor",
+      content: '""',
+    },
+  },
+  "@keyframes ripple": {
+    "0%": {
+      transform: "scale(.8)",
+      opacity: 1,
+    },
+    "100%": {
+      transform: "scale(2.4)",
+      opacity: 0,
+    },
+  },
+}))(Badge);
 
 const useStyles = makeStyles((theme) => ({
   root: {
     display: "flex",
+  },
+  avatarGrid: {
+    paddingTop: "20px",
+    paddingLeft: "5px",
+    paddingBottom: "20px",
+    color: "#dcddde",
+  },
+  avatarIcon: {
+    display: "flex",
+    paddingLeft: "10px",
+    paddingRight: "10px",
+  },
+  avatarName: {
+    fontSize: "1em",
+    paddingLeft: "12px",
+    paddingTop: "8px",
+  },
+  avatarDisplayName: {
+    alignSelf: "center",
+    paddingLeft: "10px",
+    fontWeight: "600",
+  },
+  purple: {
+    color: theme.palette.getContrastText(deepPurple[500]),
+    backgroundColor: "#3f51b5",
   },
   drawer: {
     [theme.breakpoints.up("sm")]: {
@@ -33,6 +96,10 @@ const useStyles = makeStyles((theme) => ({
       width: `calc(100% - ${drawerWidth}px)`,
       marginLeft: drawerWidth,
     },
+    backgroundColor: "#22273b",
+    color: "#dcddde",
+    boxShadow:
+      "0 1px 0 rgba(4,4,5,0.2),0 1.5px 0 rgba(6,6,7,0.05),0 2px 0 rgba(4,4,5,0.05);",
   },
   menuButton: {
     marginRight: theme.spacing(2),
@@ -44,20 +111,20 @@ const useStyles = makeStyles((theme) => ({
   toolbar: theme.mixins.toolbar,
   drawerPaper: {
     width: drawerWidth,
-  },
-  content: {
-    flexGrow: 1,
+    backgroundColor: "#171c2e",
+    color: "white",
   },
   sideToolBar: {
-    backgroundColor: "#3f51b5",
+    backgroundColor: "#171c2e",
     color: "#fff",
-    fontSize: "1.25rem",
     lineHeight: 1.6,
-    letterSpacing: "0.2em",
     boxShadow:
-      "0px 2px 4px -1px rgb(0 0 0 / 20%), 0px 4px 5px 0px rgb(0 0 0 / 14%), 0px 1px 10px 0px rgb(0 0 0 / 12%)",
-    fontWeight: "900",
+      "0 1px 0 rgba(4,4,5,0.2),0 1.5px 0 rgba(6,6,7,0.05),0 2px 0 rgba(4,4,5,0.05);",
     minHeight: "50px",
+  },
+  sideToolBarText: {
+    letterSpacing: "0.2em",
+    fontWeight: "900",
   },
   title: {
     flexGrow: 1,
@@ -65,12 +132,24 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 function Application(props) {
-  const { window } = props;
+  const { window, uid } = props;
   const classes = useStyles();
   const theme = useTheme();
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState(null);
+  const [userDetails, setUserDetails] = useState([]);
+  const [editProfileModal, setEditProfileModal] = useState(false);
+  const [alert, setAlert] = useState(false);
   const open = Boolean(anchorEl);
+
+  useEffect(() => {
+    db.collection("users")
+      .doc(uid)
+      .onSnapshot((doc) => {
+        setUserDetails(doc.data());
+        localStorage.setItem("userDetails", JSON.stringify(doc.data()));
+      });
+  }, [uid]);
 
   const handleMenu = (event) => {
     setAnchorEl(event.currentTarget);
@@ -84,13 +163,62 @@ function Application(props) {
     setMobileOpen(!mobileOpen);
   };
 
-  const drawer = (
+  const toggleEditProfile = () => {
+    setEditProfileModal(!editProfileModal);
+  };
+
+  const handleAlert = () => {
+    setAlert(!alert);
+  };
+
+  const signOut = () => {
+    auth
+      .signOut()
+      .then(() => {
+        console.log("signed out");
+        localStorage.clear();
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  };
+
+  const drawer = userDetails && (
     <div>
-      <Toolbar className={classes.sideToolBar}>CHATIFY</Toolbar>
+      <Toolbar className={classes.sideToolBar}>
+        <Typography variant="h6" className={classes.sideToolBarText}>
+          CHATIFY
+        </Typography>
+      </Toolbar>
       <Divider />
-      <Grid>
-        <h3>SB</h3>
-        <h4>Dp</h4>
+      <Grid className={classes.avatarGrid}>
+        <div className={classes.avatarIcon}>
+          <StyledBadge
+            overlap="circle"
+            anchorOrigin={{
+              vertical: "bottom",
+              horizontal: "right",
+            }}
+            variant="dot"
+          >
+            <Avatar
+              alt={userDetails.name}
+              src={userDetails.photoURL}
+              className={classes.purple}
+            />
+          </StyledBadge>
+          <Typography variant="h6" className={classes.avatarDisplayName}>
+            {userDetails.displayName}
+          </Typography>
+        </div>
+        <div>
+          <Typography variant="h4" className={classes.avatarName}>
+            {userDetails.name}
+          </Typography>
+          <Typography variant="h4" className={classes.avatarName}>
+            {userDetails.email}
+          </Typography>
+        </div>
       </Grid>
       <Divider />
       <Rooms />
@@ -103,6 +231,25 @@ function Application(props) {
   return (
     <div className={classes.root}>
       <CssBaseline />
+
+      <Snackbar
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        open={alert}
+        onClose={handleAlert}
+        TransitionComponent={Fade}
+        message="Display Name Updated Successfully"
+        key={Fade}
+        action={
+          <IconButton aria-label="close" color="inherit" onClick={handleAlert}>
+            <CloseIcon />
+          </IconButton>
+        }
+      />
+
+      {editProfileModal ? (
+        <EditProfile toggler={toggleEditProfile} alert={handleAlert} />
+      ) : null}
+
       <AppBar position="fixed" className={classes.appBar}>
         <Toolbar style={{ minHeight: "50px" }}>
           <IconButton
@@ -116,7 +263,9 @@ function Application(props) {
           </IconButton>
 
           <Typography variant="h6" className={classes.title}>
-            Photos
+            <Link to="/" style={{ textDecoration: "none", color: "#dcddde" }}>
+              Home
+            </Link>
           </Typography>
 
           <div>
@@ -132,19 +281,26 @@ function Application(props) {
             <Menu
               id="menu-appbar"
               anchorEl={anchorEl}
+              getContentAnchorEl={null}
               anchorOrigin={{
-                vertical: "top",
-                horizontal: "right",
+                vertical: "bottom",
+                horizontal: "center",
               }}
               keepMounted
               transformOrigin={{
                 vertical: "top",
-                horizontal: "right",
+                horizontal: "center",
               }}
               open={open}
               onClose={handleClose}
             >
-              <MenuItem onClick={handleClose}>Log Out</MenuItem>
+              <MenuItem onClick={toggleEditProfile}>
+                <FaUserEdit /> &nbsp; Edit Profile
+              </MenuItem>
+
+              <MenuItem onClick={signOut}>
+                <GoSignOut /> &nbsp; Sign Out of Chatify
+              </MenuItem>
             </Menu>
           </div>
         </Toolbar>
@@ -182,11 +338,6 @@ function Application(props) {
           </Drawer>
         </Hidden>
       </nav>
-
-      <main className={classes.content}>
-        <div className={classes.toolbar} style={{ minHeight: "50px" }} />
-        <Chat />
-      </main>
     </div>
   );
 }
