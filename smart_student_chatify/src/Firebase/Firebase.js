@@ -12,9 +12,9 @@ const firebaseConfig = {
   measurementId: "G-F7FJTW1E1L"
 };
 
-const firebaseApp = initializeApp(firebaseConfig);
+const firebaseApp = firebase.initializeApp(firebaseConfig);
 
 const db = firebaseApp.firestore();
-const auth = firbase.auth();
+const auth = firebase.auth();
 
 export { db, auth };

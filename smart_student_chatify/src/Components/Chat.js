@@ -36,7 +36,7 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 function Chat() {
-    const classes = usedStyles();
+    const classes = useStyles();
     const list = [];
     for (var i = 1; i <= 100; i++) {
         list.push("hello");
@@ -53,7 +53,7 @@ function Chat() {
                   required
                   id="outlined-basic"
                   label="Outlined"
-                  variant="Outlined"
+                  variant="outlined"
                 />
             </Grid>
         </div>
